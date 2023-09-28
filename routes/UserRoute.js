@@ -5,6 +5,7 @@ const User = require("../schemas/UserModel");
 const { TOKEN_KEY } = process.env;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { verifyToken } = require("../middleware/auth");
 
 // Sign up
 userRouter.post("/signup", async (req, res) => {
@@ -135,6 +136,44 @@ userRouter.put("/edit-user", async (req, res) => {
     // Handle errors
     console.error(error);
     res.status(500).send("Error updating User");
+  }
+});
+
+//  API endpoint to get user details
+userRouter.get("/get-user-details", verifyToken, async (req, res) => {
+  try {
+    const user = req.user;
+
+    console.log({ user });
+    // For example, you can retrieve user details from MongoDB based on user._id
+    const foundUser = await User.findById(user._id);
+
+    if (!foundUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    // Send user details as the response
+    res.status(200).json(foundUser);
+  } catch (error) {
+    // Handle errors
+    res.status(500).json({ message: "Error fetching user details" });
+  }
+});
+//  API endpoint to get user details By Id
+userRouter.post("/get-user-id", async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    // For example, you can retrieve user details from MongoDB based on user._id
+    const foundUser = await User.findById(id);
+
+    if (!foundUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    // Send user details as the response
+    res.status(200).json(foundUser);
+  } catch (error) {
+    // Handle errors
+    res.status(500).json({ message: "Error fetching user details" });
   }
 });
 

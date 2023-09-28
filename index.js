@@ -9,6 +9,7 @@ const userRouter = require("./routes/UserRoute");
 require("./utils/passport");
 
 const passport = require("passport");
+const advertiseRouter = require("./routes/AdvertiseRoute");
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use("/api/v1/users", userRouter); //User Route
+app.use("/api/v1/advertise", advertiseRouter); //User Route
 app.use("/auth", authRoute); // Google Auth
 
 app.listen(port, () => {
