@@ -14,6 +14,9 @@ const userSchema = new mongoose.Schema(
     state: { type: String, required: false },
     city: { type: String, required: false },
     zip: { type: String, required: false },
+    isGoogle: { type: Boolean, default: false },
+    isFacebook: { type: Boolean, default: false },
+    isApple: { type: Boolean, default: false },
   },
   {
     timestamps: true,
