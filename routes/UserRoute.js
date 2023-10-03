@@ -45,21 +45,31 @@ userRouter.post("/login", async (req, res) => {
     if (!(email && password)) {
       return res.status(400).send("All input is required");
     }
+
     const user = await User.findOne({ email });
 
     if (user) {
-      check = await bcrypt.compare(password, user.password);
-
-      if (check) {
+      if (user.isGoogle) {
         // Create token
         const access_token = jwt.sign({ user_id: user._id, email }, TOKEN_KEY, {
           expiresIn: "8h",
         });
-
-        res.status(200).json({ status: true, user, access_token });
+        res.status(200).send({ status: true, message: "login successfully", user, access_token });
         return;
+      } else {
+        check = await bcrypt.compare(password, user.password);
+
+        if (check) {
+          // Create token
+          const access_token = jwt.sign({ user_id: user._id, email }, TOKEN_KEY, {
+            expiresIn: "8h",
+          });
+          res.status(200).send({ status: true, message: "login successfully", user, access_token });
+          return;
+        }
       }
       res.status(200).send({ status: false, message: "Invalid email or password" });
+      return;
     }
     res.status(200).send({ status: false, message: "Invalid email or password" });
   } catch (err) {
@@ -108,6 +118,8 @@ userRouter.put("/edit-user", async (req, res) => {
       firstName,
       lastName,
       phoneNo,
+      email,
+      password,
       addressMain,
       address,
       country,
@@ -116,22 +128,48 @@ userRouter.put("/edit-user", async (req, res) => {
       zip,
     } = req.body;
 
-    // Update Dish document in MongoDB
-    await User.findByIdAndUpdate(`${_id}`, {
-      isActive,
-      firstName,
-      lastName,
-      phoneNo,
-      addressMain,
-      address,
-      country,
-      state,
-      city,
-      zip,
-    });
+    if (password) {
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const resp = await User.findByIdAndUpdate(
+        _id,
+        {
+          password: hashedPassword,
+        },
+        { new: true }
+      ).select("-password");
+      res
+        .status(200)
+        .send({ status: true, message: "User password updated successfully", user: resp });
+      return;
+    } else {
+      const oldUser = await User.findOne({ email });
+      if (oldUser) {
+        res.status(200).send({ status: false, meassge: "email already exist" });
+        return;
+      }
 
-    // Send success response
-    res.status(200).send("User updated successfully");
+      const resp = await User.findByIdAndUpdate(
+        _id,
+        {
+          isActive,
+          firstName,
+          lastName,
+          phoneNo,
+          addressMain,
+          email,
+          password,
+          address,
+          country,
+          state,
+          city,
+          zip,
+        },
+        { new: true }
+      ).select("-password");
+
+      // Send success response
+      res.status(200).send({ status: true, message: "User updated successfully", user: resp });
+    }
   } catch (error) {
     // Handle errors
     console.error(error);
@@ -144,9 +182,8 @@ userRouter.get("/get-user-details", verifyToken, async (req, res) => {
   try {
     const user = req.user;
 
-    console.log({ user });
     // For example, you can retrieve user details from MongoDB based on user._id
-    const foundUser = await User.findById(user._id);
+    const foundUser = await User.findById(user.user_id);
 
     if (!foundUser) {
       return res.status(404).json({ message: "User not found" });

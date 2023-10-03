@@ -49,7 +49,7 @@ app.use(passport.session());
 
 app.use("/api/v1/users", userRouter); //User Route
 app.use("/api/v1/advertise", advertiseRouter); //User Route
-app.use("/auth", authRoute); // Google Auth
+app.use("/api/v1/auth", authRoute); // Google Auth
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
