@@ -6,6 +6,8 @@ const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const authRoute = require("./routes/authRoute");
 const userRouter = require("./routes/UserRoute");
+const zipRouter = require("./routes/ZipCountryRoute");
+
 require("./utils/passport");
 
 const passport = require("passport");
@@ -50,6 +52,7 @@ app.use(passport.session());
 app.use("/api/v1/users", userRouter); //User Route
 app.use("/api/v1/advertise", advertiseRouter); //User Route
 app.use("/api/v1/auth", authRoute); // Google Auth
+app.use("/api/v1/genral", zipRouter); // Zipcode and Country Route
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
