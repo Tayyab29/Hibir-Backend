@@ -13,11 +13,11 @@ userRouter.post("/signup", async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
     // Validate user input
     if (!(email && password && firstName)) {
-      return res.status(400).send("All input is required");
+      return res.status(200).send({ status: false, message: "All input is required" });
     }
     const oldUser = await User.findOne({ email });
     if (oldUser) {
-      return res.status(200).send("User already exist");
+      return res.status(200).send({ status: false, message: "User already exist" });
     } else {
       // encryptedPassword = bcrypt.hash(password, SECRET_KEY);
       const hashedPassword = bcrypt.hashSync(password, 10);
@@ -29,10 +29,10 @@ userRouter.post("/signup", async (req, res) => {
         isActive: true,
       });
       await user.save();
-      return res.status(200).send("User Created Succesfully");
+      return res.status(200).send({ status: true, message: "User Created Succesfully" });
     }
   } catch (err) {
-    res.status(500).send(JSON.stringify(err));
+    res.status(500).send({ status: false, message: "Server Error" });
   }
 });
 

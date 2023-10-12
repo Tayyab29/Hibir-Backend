@@ -24,6 +24,7 @@ advertiseRouter.post("/create", async (req, res) => {
       rentStartDate,
       rentEndDate,
       rentDescription,
+      utilities,
       petsAllowed,
       laundryType,
       parkingType,
@@ -52,6 +53,7 @@ advertiseRouter.post("/create", async (req, res) => {
       rentStartDate,
       rentEndDate,
       rentDescription,
+      utilities,
       petsAllowed,
       laundryType,
       parkingType,
@@ -80,6 +82,7 @@ advertiseRouter.post("/create", async (req, res) => {
       rentStartDate,
       rentEndDate,
       rentDescription,
+      utilities,
       petsAllowed,
       laundryType,
       parkingType,
@@ -91,9 +94,9 @@ advertiseRouter.post("/create", async (req, res) => {
       isActive: true,
     });
     await advertise.save();
-    res.status(200).send("Advertisement Created Succesfully");
+    res.status(200).send({ status: true, message: "Advertisement Created Succesfully" });
   } catch (err) {
-    res.status(500).send(JSON.stringify(err));
+    res.status(500).send({ status: false, message: "Server Error" });
   }
 });
 
