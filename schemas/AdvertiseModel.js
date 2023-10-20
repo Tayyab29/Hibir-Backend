@@ -37,7 +37,9 @@ const advertiseSchema = new mongoose.Schema(
     amenities: [{ type: String }],
     userType: { type: String, required: false },
     contactPreference: { type: String, required: false },
-    isHideName: { type: Boolean, rdefault: false },
+    isHideName: { type: Boolean, default: false },
+    isSaved: { type: Boolean, default: false },
+    isPublished: { type: Boolean, default: false },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   {

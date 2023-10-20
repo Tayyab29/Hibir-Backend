@@ -125,6 +125,7 @@ userRouter.put("/edit-user", async (req, res) => {
       state,
       city,
       zip,
+      language,
     } = req.body;
 
     if (password) {
@@ -162,6 +163,7 @@ userRouter.put("/edit-user", async (req, res) => {
           state,
           city,
           zip,
+          language,
         },
         { new: true }
       ).select("-password");
