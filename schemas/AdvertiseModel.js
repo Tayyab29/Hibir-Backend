@@ -2,7 +2,9 @@ const mongoose = require("mongoose");
 
 const imageSchema = new mongoose.Schema(
   {
-    url: { type: String, required: false },
+    fileName: { type: String, required: false },
+    fileType: { type: String, required: false },
+    data: { type: Buffer, required: false },
     index: { type: Number, required: false },
   },
   {
@@ -17,6 +19,7 @@ const advertiseSchema = new mongoose.Schema(
     propertyUnit: { type: String, required: true }, //done
     propertyAdress: { type: String, required: false }, //done
     propertyType: { type: String, required: true },
+    propertyNames: { type: [String], required: false },
     propertyBeds: { type: [String], required: false },
     propertyBaths: { type: [String], required: false },
     sizeSqft: { type: [String], required: false },
@@ -40,6 +43,7 @@ const advertiseSchema = new mongoose.Schema(
     isHideName: { type: Boolean, default: false },
     isSaved: { type: Boolean, default: false },
     isPublished: { type: Boolean, default: false },
+    isFullfilled: { type: Boolean, default: false },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   {
