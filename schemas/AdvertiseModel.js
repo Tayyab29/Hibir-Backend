@@ -28,6 +28,12 @@ const advertiseSchema = new mongoose.Schema(
     leaseLength: { type: [String], required: false },
     availableDate: { type: [Date], default: Date.now, required: false },
     images: [imageSchema], // Use the imageSchema for images
+    displayImage: {
+      fileName: { type: String, required: false },
+      fileType: { type: String, required: false },
+      data: { type: Buffer, required: false },
+      index: { type: Number, required: false },
+    },
     description: { type: String, required: false },
     rentTitle: { type: String, required: false },
     rentStartDate: { type: Date, default: Date.now, required: false },

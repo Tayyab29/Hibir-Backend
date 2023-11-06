@@ -130,7 +130,6 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
       deposit,
       leaseLength,
       availableDate,
-      images,
       description,
       rentTitle,
       rentStartDate,
@@ -146,6 +145,7 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
       isHideName,
       isSaved,
       isFullfilled,
+      isPublished,
       user,
     } = req.body;
     // Update Dish document in MongoDB
@@ -162,7 +162,6 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
       deposit,
       leaseLength,
       availableDate,
-      images,
       description,
       rentTitle,
       rentStartDate,
@@ -178,6 +177,7 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
       isHideName,
       isSaved,
       isFullfilled,
+      isPublished,
       user,
       isActive: true,
     });
@@ -191,19 +191,136 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
   }
 });
 
-//  API endpoint to get Property details By Id
-advertiseRouter.get("/getAdvertiseById", async (req, res) => {
+// API endpoint to get Property details By Id
+advertiseRouter.post("/getAdvertisement", async (req, res) => {
+  try {
+    const { userId, searchQuery, propertyType, isSaved } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ status: false, message: "User ID is required" });
+    }
+
+    // Construct the search conditions
+    const searchConditions = {
+      user: userId,
+      isFullfilled: true,
+    };
+
+    // If a property type is specified, add it to the search conditions
+    if (propertyType) {
+      searchConditions.propertyType = { $regex: propertyType, $options: "i" };
+    }
+    if (isSaved) {
+      searchConditions.isSaved = true;
+    }
+
+    // If there's a search query, add text search conditions for propertyName, rentTitle, and description
+    if (searchQuery) {
+      searchConditions.$or = [
+        // { propertyNames: { $regex: searchQuery, $options: "i" } },
+        { propertyAdress: { $regex: searchQuery, $options: "i" } },
+        { description: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    // Find the Advertise documents based on the constructed search conditions
+    const foundAds = await Advertise.find(searchConditions).select(
+      "propertyAdress propertyBaths user _id description displayImage"
+    );
+
+    if (foundAds.length === 0) {
+      return res.status(200).json({
+        status: false,
+        message: "No record available",
+      });
+    }
+
+    // Send found advertisements as the response
+    return res.status(200).json({ status: true, properties: foundAds });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({ status: false, message: "Error fetching advertisements" });
+  }
+});
+
+// API endpoint to get Property details By Id
+advertiseRouter.post("/getAllAdvertisement", async (req, res) => {
+  try {
+    const { userId, searchQuery, propertyType, isSaved, skip, take } = req.body;
+    let skipRecords = skip || 0;
+    let takeRecords = take || 4;
+
+    // if (!userId) {
+    //   return res.status(400).json({ status: false, message: "User ID is required" });
+    // }
+
+    // Construct the search conditions
+    const searchConditions = {
+      user: userId,
+      isFullfilled: true,
+    };
+
+    // If a property type is specified, add it to the search conditions
+    if (propertyType) {
+      searchConditions.propertyType = { $regex: propertyType, $options: "i" };
+    }
+    if (isSaved) {
+      searchConditions.isSaved = true;
+    }
+
+    // If there's a search query, add text search conditions for propertyName, rentTitle, and description
+    if (searchQuery) {
+      searchConditions.$or = [
+        // { propertyNames: { $regex: searchQuery, $options: "i" } },
+        { propertyAdress: { $regex: searchQuery, $options: "i" } },
+        { description: { $regex: searchQuery, $options: "i" } },
+      ];
+    }
+
+    // Find the Advertise documents based on the constructed search conditions
+    const foundAds = await Advertise.find()
+      .select("propertyAdress propertyBaths user _id description displayImage")
+      .sort({ createdAt: -1 })
+      .skip(skipRecords)
+      .limit(takeRecords);
+
+    if (foundAds.length === 0) {
+      return res.status(200).json({
+        status: false,
+        message: "No record available",
+      });
+    }
+
+    // Send found advertisements as the response
+    return res.status(200).json({ status: true, properties: foundAds });
+  } catch (error) {
+    // Handle errors
+    return res.status(500).json({ status: false, message: "Error fetching advertisements" });
+  }
+});
+
+//  API endpoint to getAdvertisement By Id
+advertiseRouter.post("/getAdvertiseById", async (req, res) => {
   try {
     const { id } = req.body;
 
     // For example, you can retrieve user details from MongoDB based on user._id
-    const found = await User.findById(id);
+    const foundUser = await Advertise.findById(id).select("-updatedAt -displayImage");
+    // Create an object to store counts for each index
+    const indexCounts = {};
+    if (foundUser.images?.length > 0) {
+      // Count occurrences of each index
+      foundUser.images.forEach((item) => {
+        const { index } = item;
+        indexCounts[index] = (indexCounts[index] || 0) + 1;
+      });
+    }
 
-    if (!found) {
-      return res.status(404).json({ status: false, message: "User not found" });
+    if (!foundUser) {
+      return res.status(404).json({ status: false, message: "Details not found" });
     }
     // Send user details as the response
-    return res.status(200).json({ status: false, property: found });
+    return res.status(200).json({ status: true, details: foundUser, totalImages: indexCounts });
   } catch (error) {
     // Handle errors
     return res.status(500).json({ status: false, message: "Error fetching user details" });
@@ -215,10 +332,13 @@ advertiseRouter.post("/upload", upload.array("attachments"), async (req, res) =>
   try {
     const { _id, index } = req.body;
     const found = await Advertise.findById(_id).select("images");
+    let displayImage = "";
 
     if (req.files && req.files.length > 0) {
       const mergedArray = [...req.files];
       if (found.images.length > 0) {
+        const total = found.images.length - 1;
+        displayImage = found.images[total];
         found.images.map((item) => {
           mergedArray.push({
             originalname: item.fileName,
@@ -227,6 +347,13 @@ advertiseRouter.post("/upload", upload.array("attachments"), async (req, res) =>
             position: item.index,
           });
         });
+      } else {
+        displayImage = {
+          fileName: mergedArray[0].originalname,
+          fileType: mergedArray[0].mimetype,
+          data: mergedArray[0].buffer,
+          index: mergedArray[0].position ?? index,
+        };
       }
       // const user_files = req.files;
       // const mergedArray = user_files.map((item1) => {
@@ -258,9 +385,11 @@ advertiseRouter.post("/upload", upload.array("attachments"), async (req, res) =>
 
         attachments.push(attachment);
       }
+
       // Upload document in MongoDB
       await Advertise.findByIdAndUpdate(`${_id}`, {
         images: attachments,
+        displayImage: displayImage,
       });
 
       const matchingArray = attachments
