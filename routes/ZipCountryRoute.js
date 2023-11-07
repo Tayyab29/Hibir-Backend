@@ -5,7 +5,7 @@ const Zipcode = require("../schemas/ZipCodeModel");
 const Country = require("../schemas/CountryModel");
 
 // API endpoint to get user details by name (partial match)
-zipRouter.get("/searchZipcode", async (req, res) => {
+zipRouter.post("/searchZipcode", async (req, res) => {
   try {
     const { zip } = req.body;
 
@@ -13,14 +13,16 @@ zipRouter.get("/searchZipcode", async (req, res) => {
     const foundUsers = await Zipcode.find({ zip: { $regex: zip, $options: "i" } }).limit(15);
 
     if (foundUsers.length === 0) {
-      return res.status(404).json({ message: "No record found with a similar zip" });
+      return res.status(200).json({ status: false, message: "No record found with a similar zip" });
     }
 
     // Send the list of similar users as the response
-    res.status(200).json(foundUsers);
+    res
+      .status(200)
+      .json({ status: true, message: "Record found with a similar zip", records: foundUsers });
   } catch (error) {
     // Handle errors
-    res.status(500).json({ message: "Error fetching user details" });
+    res.status(500).json({ status: false, message: "Error fetching user details" });
   }
 });
 

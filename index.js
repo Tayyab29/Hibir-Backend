@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const authRoute = require("./routes/authRoute");
 const userRouter = require("./routes/UserRoute");
 const zipRouter = require("./routes/ZipCountryRoute");
+const chatRouter = require("./routes/ChatRoute");
+const messageRouter = require("./routes/MeassageRoute");
 
 require("./utils/passport");
 
@@ -53,6 +55,8 @@ app.use("/api/v1/users", userRouter); //User Route
 app.use("/api/v1/advertise", advertiseRouter); //User Route
 app.use("/api/v1/auth", authRoute); // Google Auth
 app.use("/api/v1/genral", zipRouter); // Zipcode and Country Route
+app.use("/api/v1/chat", chatRouter); // Chat Route
+app.use("/api/v1/message", messageRouter); // Chat Route
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
