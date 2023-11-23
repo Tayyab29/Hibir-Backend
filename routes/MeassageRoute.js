@@ -13,19 +13,19 @@ messageRouter.post("/", async (req, res) => {
   });
   try {
     const result = await message.save();
-    res.status(200).json(result);
+    res.status(200).json({ status: true, result: result });
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ status: false, messag: "Server Error" });
   }
 });
 
-messageRouter.get("/:chatId", async (req, res) => {
-  const { chatId } = req.params;
+messageRouter.post("/chatId", async (req, res) => {
+  const { chatId } = req.body;
   try {
-    const result = await Message.find({ chatId });
-    res.status(200).json(result);
+    const result = await Message.find({ chatId }).select("-updatedAt");
+    res.status(200).json({ status: true, result: result });
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ status: false, messag: "Server Error" });
   }
 });
 
