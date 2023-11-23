@@ -6,7 +6,7 @@ const Chat = require("../schemas/ChatModel");
 // Creating Chat
 chatRouter.post("/", async (req, res) => {
   const newChat = new Chat({
-    members: [req.body.senderId, req.body.receiverId],
+    users: [req.body.senderId, req.body.receiverId],
   });
   try {
     const result = await newChat.save();
@@ -17,14 +17,14 @@ chatRouter.post("/", async (req, res) => {
 });
 
 // Fetchig All Chat agnaist User
-chatRouter.post("/:userId", async (req, res) => {
+chatRouter.post("/getUserChatById", async (req, res) => {
   try {
     const chat = await Chat.find({
-      members: { $in: [req.params.userId] },
-    });
-    res.status(200).json(chat);
+      users: { $in: [req.body.userId] },
+    }).populate("users", "firstName lastName _id");
+    res.status(200).json({ status: true, chat: chat });
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ status: false, messag: "Server Error" });
   }
 });
 
@@ -34,9 +34,9 @@ chatRouter.post("/find/:firstId/:secondId", async (req, res) => {
     const chat = await Chat.findOne({
       members: { $all: [req.params.firstId, req.params.secondId] },
     });
-    res.status(200).json(chat);
+    res.status(200).json({ status: true, chat: chat });
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json({ status: false, messag: "Server Error" });
   }
 });
 
