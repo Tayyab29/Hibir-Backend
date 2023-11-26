@@ -2,18 +2,30 @@ const express = require("express");
 const messageRouter = express.Router();
 
 const Message = require("../schemas/MessageModel");
+const Notification = require("../schemas/NotificationModel");
 
 // Creating Meassage
 messageRouter.post("/", async (req, res) => {
-  const { chatId, senderId, text } = req.body;
+  const { chatId, senderId, text, recieverId } = req.body;
   const message = new Message({
     chatId,
     senderId,
     text,
   });
+  const notify = new Notification({
+    userId: recieverId,
+    senderId: senderId,
+    chatId: chatId,
+    isRead: false,
+  });
+
   try {
-    const result = await message.save();
-    res.status(200).json({ status: true, result: result });
+    const _message = message.save();
+    const notifi = notify.save();
+
+    const [msg, noti] = await Promise.all([_message, notifi]);
+
+    res.status(200).json({ status: true, result: msg });
   } catch (error) {
     res.status(500).json({ status: false, messag: "Server Error" });
   }

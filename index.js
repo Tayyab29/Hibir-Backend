@@ -9,8 +9,10 @@ const userRouter = require("./routes/UserRoute");
 const zipRouter = require("./routes/ZipCountryRoute");
 const chatRouter = require("./routes/ChatRoute");
 const messageRouter = require("./routes/MeassageRoute");
+const notificationRouter = require("./routes/NotificationRoute");
 
 require("./utils/passport");
+const { v4: uuidv4 } = require("uuid");
 
 const passport = require("passport");
 const advertiseRouter = require("./routes/AdvertiseRoute");
@@ -57,6 +59,7 @@ app.use("/api/v1/auth", authRoute); // Google Auth
 app.use("/api/v1/genral", zipRouter); // Zipcode and Country Route
 app.use("/api/v1/chat", chatRouter); // Chat Route
 app.use("/api/v1/message", messageRouter); // Chat Route
+app.use("/api/v1/notification", notificationRouter); // Notification Route
 
 const server = app.listen(port, () => {
   console.log(`Listening on port ${port}`);
@@ -105,12 +108,15 @@ io.on("connection", (socket) => {
   socket.on("send-message", (data) => {
     const { receiverId } = data;
     const user = activeUsers.find((user) => user.userId === receiverId);
-    // console.log("Sending from socket to :", receiverId);
-    // console.log("Data: ", data);
-    // console.log("Data: ", data.latestmessage);
-    // console.log("first", user);
+
     if (user) {
+      const random = uuidv4();
+      let notify = {
+        receiverId,
+        random,
+      };
       io.to(user.socketId).emit("recieve-message", data);
+      io.to(user.socketId).emit("recieve-notification", notify);
     }
   });
   // Event listener for get-users
