@@ -355,23 +355,7 @@ advertiseRouter.post("/upload", upload.array("attachments"), async (req, res) =>
           index: mergedArray[0].position ?? index,
         };
       }
-      // const user_files = req.files;
-      // const mergedArray = user_files.map((item1) => {
-      //   console.log({ user_files: item1 });
-      //   const matchingItem = found.images.find(
-      //     (item2) => item2.index == index && item1.originalname === item2.fileName
-      //   );
-      //   return matchingItem
-      //     ? {
-      //         originalname: matchingItem.fileName,
-      //         mimetype: matchingItem.fileType,
-      //         buffer: matchingItem.data,
-      //       }
-      //     : item1;
-      //   // } else {
-      //   //   return item1;
-      //   // }
-      // });
+
       const attachments = [];
 
       for (const file of mergedArray) {
