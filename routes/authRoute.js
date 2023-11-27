@@ -111,11 +111,17 @@ router.post("/google", async (req, res) => {
     const user = await User.findOne({ email: googleEmail });
 
     if (user) {
-      // User exists, generate a JWT and send it with user details
-      const access_token = jwt.sign({ user_id: user._id, email: user.email }, TOKEN_KEY, {
-        expiresIn: "8h",
-      });
-      res.status(200).json({ status: true, user, access_token });
+      if (user?.isActive) {
+        // User exists, generate a JWT and send it with user details
+        const access_token = jwt.sign({ user_id: user._id, email: user.email }, TOKEN_KEY, {
+          expiresIn: "8h",
+        });
+        res.status(200).json({ status: true, user, access_token, account: true });
+        return;
+      } else {
+        res.status(200).send({ status: true, message: "Deactivated Account", account: false });
+        return;
+      }
     } else {
       // User doesn't exist, create a new user in your database
       const newUser = new User({
@@ -131,11 +137,11 @@ router.post("/google", async (req, res) => {
       const access_token = jwt.sign({ user_id: user._id, email: userInfo.data.email }, TOKEN_KEY, {
         expiresIn: "8h",
       });
-      res.status(200).json({ status: true, user: newUser, access_token });
+      res.status(200).json({ status: true, user: newUser, access_token, account: true });
     }
   } catch (error) {
     console.error("Error verifying Google token:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ status: false, error: "Internal server error" });
   }
 });
 
@@ -153,7 +159,9 @@ router.post("/googleSignup", async (req, res) => {
     const user = await User.findOne({ email: googleEmail });
 
     if (user) {
-      res.status(200).json({ status: false, user, message: "User already exist" });
+      if (user.isActive) {
+        res.status(200).json({ status: false, user, message: "User already exist" });
+      }
     } else {
       // User doesn't exist, create a new user in your database
       const newUser = new User({
