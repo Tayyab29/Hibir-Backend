@@ -49,29 +49,48 @@ userRouter.post("/login", async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user) {
-      if (user.isGoogle) {
-        // Create token
-        const access_token = jwt.sign({ user_id: user._id, email }, TOKEN_KEY, {
-          expiresIn: "8h",
-        });
-        res.status(200).send({ status: true, message: "login successfully", user, access_token });
-        return;
-      } else {
-        check = await bcrypt.compare(password, user.password);
-
-        if (check) {
+      if (user.isActive) {
+        if (user.isGoogle) {
           // Create token
           const access_token = jwt.sign({ user_id: user._id, email }, TOKEN_KEY, {
             expiresIn: "8h",
           });
-          res.status(200).send({ status: true, message: "login successfully", user, access_token });
+          res.status(200).send({
+            status: true,
+            message: "login successfully",
+            user,
+            access_token,
+            account: true,
+          });
           return;
+        } else {
+          check = await bcrypt.compare(password, user.password);
+
+          if (check) {
+            // Create token
+            const access_token = jwt.sign({ user_id: user._id, email }, TOKEN_KEY, {
+              expiresIn: "8h",
+            });
+            res.status(200).send({
+              status: true,
+              message: "login successfully",
+              user,
+              access_token,
+              account: true,
+            });
+            return;
+          }
         }
+        res
+          .status(200)
+          .send({ status: false, message: "Invalid email or password", account: false });
+        return;
+      } else {
+        res.status(200).send({ status: true, message: "Deactivated Account", account: false });
+        return;
       }
-      res.status(200).send({ status: false, message: "Invalid email or password" });
-      return;
     }
-    res.status(200).send({ status: false, message: "Invalid email or password" });
+    res.status(200).send({ status: false, message: "Invalid email or password", account: false });
   } catch (err) {
     return res.status(500).send({ status: false, message: "Server Error creating user" });
   }
@@ -173,6 +192,28 @@ userRouter.put("/edit-user", async (req, res) => {
         .status(200)
         .send({ status: true, message: "User updated successfully", user: resp });
     }
+  } catch (error) {
+    // Handle errors
+    return res.status(500).send("Error updating User");
+  }
+});
+
+// Deactivate User
+userRouter.put("/deactivate-user", async (req, res) => {
+  try {
+    // Extract information and ID from request body and URL
+    const { _id, isActive } = req.body;
+
+    await User.findByIdAndUpdate(
+      _id,
+      {
+        isActive,
+      },
+      { new: true } // Return the modified document
+    ).select("-password");
+
+    // Send success response
+    return res.status(200).send({ status: true, message: "User got deactivated" });
   } catch (error) {
     // Handle errors
     return res.status(500).send("Error updating User");
