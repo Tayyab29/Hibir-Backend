@@ -163,8 +163,11 @@ userRouter.put("/edit-user", async (req, res) => {
     } else {
       const oldUser = await User.findOne({ email });
       if (oldUser) {
-        res.status(200).send({ status: false, meassge: "email already exist" });
-        return;
+        const old_id = JSON.parse(JSON.stringify(oldUser._id));
+        if (old_id !== _id) {
+          res.status(200).send({ status: false, meassge: "email already exist" });
+          return;
+        }
       }
 
       const resp = await User.findByIdAndUpdate(
