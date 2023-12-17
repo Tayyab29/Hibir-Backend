@@ -41,36 +41,6 @@ advertiseRouter.post("/create", async (req, res) => {
       user,
     } = req.body;
 
-    console.log({
-      isPackage,
-      propertyUnit,
-      propertyAdress,
-      propertyType,
-      propertyNames,
-      propertyBeds,
-      propertyBaths,
-      sizeSqft,
-      rent,
-      deposit,
-      leaseLength,
-      availableDate,
-      images,
-      description,
-      rentTitle,
-      rentStartDate,
-      rentEndDate,
-      rentDescription,
-      utilities,
-      petsAllowed,
-      laundryType,
-      parkingType,
-      amenities,
-      userType,
-      contactPreference,
-      isHideName,
-      user,
-    });
-
     const advertise = await Advertise.create({
       isPackage,
       propertyUnit,
@@ -118,6 +88,7 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
     // Extract Dish information and ID from request body and URL
     const {
       _id,
+      isActive,
       isPackage,
       propertyUnit,
       propertyAdress,
@@ -178,8 +149,8 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
       isSaved,
       isFullfilled,
       isPublished,
+      isActive,
       user,
-      isActive: true,
     });
 
     // Send success response
@@ -191,7 +162,7 @@ advertiseRouter.put("/editAdvertise", async (req, res) => {
   }
 });
 
-// API endpoint to get Property details By Id
+// API endpoint to get Property details By Login User
 advertiseRouter.post("/getAdvertisement", async (req, res) => {
   try {
     const { userId, searchQuery, propertyType, isSaved } = req.body;
@@ -224,9 +195,9 @@ advertiseRouter.post("/getAdvertisement", async (req, res) => {
     }
 
     // Find the Advertise documents based on the constructed search conditions
-    const foundAds = await Advertise.find(searchConditions).select(
-      "propertyAdress propertyBaths user _id description displayImage"
-    );
+    const foundAds = await Advertise.find(searchConditions)
+      .select("propertyAdress propertyBaths user _id description displayImage isActive")
+      .sort({ createdAt: -1 });
 
     if (foundAds.length === 0) {
       return res.status(200).json({
@@ -246,54 +217,109 @@ advertiseRouter.post("/getAdvertisement", async (req, res) => {
 // API endpoint to get Property details By Id
 advertiseRouter.post("/getAllAdvertisement", async (req, res) => {
   try {
-    const { userId, searchQuery, propertyType, isSaved, skip, take } = req.body;
+    const {
+      id,
+      userId,
+      searchQuery,
+      propertyType,
+      isSaved,
+      skip,
+      take,
+      rent,
+      sizeSqft,
+      amentities,
+      propertyBeds,
+      propertyBaths,
+    } = req.body;
     let skipRecords = skip || 0;
     let takeRecords = take || 4;
 
-    // if (!userId) {
-    //   return res.status(400).json({ status: false, message: "User ID is required" });
-    // }
-
     // Construct the search conditions
     const searchConditions = {
-      user: userId,
       isFullfilled: true,
+      isActive: true,
     };
-
-    // If a property type is specified, add it to the search conditions
-    if (propertyType) {
-      searchConditions.propertyType = { $regex: propertyType, $options: "i" };
-    }
     if (isSaved) {
       searchConditions.isSaved = true;
+    }
+
+    // // If a property type is specified, add it to the search conditions
+    // if (propertyType) {
+    //   searchConditions.propertyType = { $regex: propertyType, $options: "i" };
+    // }
+
+    // Exclude the user's own ID from the search conditions
+    if (userId) {
+      searchConditions.user = { $ne: userId };
+    }
+    // Exclude the Property which user is Viewing
+    if (id) {
+      searchConditions._id = { $ne: id };
+    }
+
+    // Apply filter for propertyBaths array
+    if (propertyBeds && propertyBeds !== "Any") {
+      searchConditions.propertyBeds = { $elemMatch: { $gte: propertyBeds } };
+    }
+    // Apply filter for propertyBaths array
+    if (propertyBaths) {
+      searchConditions.propertyBaths = { $elemMatch: { $gte: propertyBaths } };
+    }
+
+    // Apply filter for ' Property Type' array
+    if (propertyType && propertyType.length > 0) {
+      searchConditions.propertyType = { $in: propertyType };
+    }
+
+    // Apply filter for 'rent' array based on range
+    if (rent && rent.length > 0) {
+      searchConditions.rent = { $gte: rent[0], $lte: rent[1] };
+    }
+    // Apply filter for 'sizeSqft' array based on range
+    if (sizeSqft && sizeSqft.length > 0) {
+      searchConditions.sizeSqft = { $gte: sizeSqft[0], $lte: sizeSqft[1] };
+    }
+    // Apply filter for amenities array
+    if (amentities && amentities.length > 0) {
+      searchConditions.amenities = { $in: amentities };
     }
 
     // If there's a search query, add text search conditions for propertyName, rentTitle, and description
     if (searchQuery) {
       searchConditions.$or = [
-        // { propertyNames: { $regex: searchQuery, $options: "i" } },
         { propertyAdress: { $regex: searchQuery, $options: "i" } },
         { description: { $regex: searchQuery, $options: "i" } },
       ];
     }
 
+    // Find the total count of Advertise documents based on the constructed search conditions
+    const count = await Advertise.countDocuments(searchConditions);
+
     // Find the Advertise documents based on the constructed search conditions
-    const foundAds = await Advertise.find()
-      .select("propertyAdress propertyBaths user _id description displayImage")
+    const ads = await Advertise.find(searchConditions)
+      .select(
+        "propertyAdress propertyBeds rentTitle rentDescription rent user _id description displayImage"
+      )
       .sort({ createdAt: -1 })
       .skip(skipRecords)
-      .limit(takeRecords);
+      .limit(takeRecords)
+      .populate("user", "firstName lastName phoneNo email _id");
+
+    const [totalCount, foundAds] = await Promise.all([count, ads]);
 
     if (foundAds.length === 0) {
       return res.status(200).json({
-        status: false,
+        status: true,
         message: "No record available",
+        properties: [],
+        total: 0,
       });
     }
 
     // Send found advertisements as the response
-    return res.status(200).json({ status: true, properties: foundAds });
+    return res.status(200).json({ status: true, properties: foundAds, total: totalCount });
   } catch (error) {
+    console.log({ error });
     // Handle errors
     return res.status(500).json({ status: false, message: "Error fetching advertisements" });
   }
@@ -305,7 +331,9 @@ advertiseRouter.post("/getAdvertiseById", async (req, res) => {
     const { id } = req.body;
 
     // For example, you can retrieve user details from MongoDB based on user._id
-    const foundUser = await Advertise.findById(id).select("-updatedAt -displayImage");
+    const foundUser = await Advertise.findById(id)
+      .select("-updatedAt -displayImage")
+      .populate("user", "firstName lastName phoneNo _id");
     // Create an object to store counts for each index
     const indexCounts = {};
     if (foundUser.images?.length > 0) {
